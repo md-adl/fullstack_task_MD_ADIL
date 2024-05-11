@@ -35,7 +35,7 @@ The project utilizes MQTT for real-time communication. It subscribes to the `/ad
 
 ## Redis Integration
 
-Tasks added to the to-do list are stored in a Redis cache with the key `FULLSTACK_TASK_<YOUR_FIRST_NAME>`. If the number of tasks exceeds 50, they are moved to a MongoDB collection, and the cache is flushed.
+Tasks added to the to-do list are stored in a Redis cache with the key `FULLSTACK_TASK_MD_Adi`. If the number of tasks exceeds 50, they are moved to a MongoDB collection, and the cache is flushed.
 
 ## Frontend
 
