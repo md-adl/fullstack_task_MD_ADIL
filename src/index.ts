@@ -2,10 +2,15 @@ import express, { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import mqtt from 'mqtt';
+import cors from 'cors'; // Import cors package
 
 const app = express();
 const PORT = 3000;
 
+// Enable CORS
+app.use(cors());
+
+// MongoDB Connection
 const mongoUri = 'mongodb+srv://assignment_user:HCgEj5zv8Hxwa4xO@test-cluster.6f94f5o.mongodb.net/assignment';
 mongoose
   .connect(mongoUri)
@@ -16,7 +21,7 @@ mongoose
     console.error('MongoDB connection error:', err);
   });
 
-
+// Define MongoDB schema and model
 interface TodoItem extends mongoose.Document {
   task: string;
 }
@@ -25,10 +30,9 @@ const todoItemSchema = new mongoose.Schema<TodoItem>({
   task: { type: String, required: true }
 });
 
+const TodoItemModel = mongoose.model<TodoItem>('assignment_Md_Adi', todoItemSchema, 'assignment_adil');
 
-const TodoItemModel = mongoose.model<TodoItem>('TodoItem', todoItemSchema, 'assignment_adil');
-
-
+// Redis Connection
 const redisClient = new Redis({
   host: 'redis-12675.c212.ap-south-1-1.ec2.cloud.redislabs.com',
   port: 12675,
@@ -42,7 +46,7 @@ redisClient.on('error', (err: any) => {
   console.error('Redis connection error:', err);
 });
 
-
+// MQTT Connection
 const mqttClient = mqtt.connect('mqtt://localhost:1883');
 
 mqttClient.on('error', (err) => {
@@ -58,7 +62,7 @@ mqttClient.on('connect', () => {
   });
 });
 
-
+// Subscribe to the MQTT topic for adding items to the to-do list
 mqttClient.on('message', async (topic, message) => {
   if (topic === '/add') {
     try {
@@ -68,11 +72,8 @@ mqttClient.on('message', async (topic, message) => {
       const length = await redisClient.llen('FULLSTACK_TASK_MD_Adi');
       if (length > 50) {
         const tasks = await redisClient.lrange('FULLSTACK_TASK_MD_Adi', 0, -1);
-        
-        await TodoItemModel.create(tasks.map(task => ({ task })));
-        
-        
         await redisClient.del('FULLSTACK_TASK_MD_Adi');
+        await TodoItemModel.create(tasks.map(task => ({ task })));
       }
     } catch (error) {
       console.error('Error processing MQTT message:', error);
@@ -82,6 +83,7 @@ mqttClient.on('message', async (topic, message) => {
 
 app.use(express.json());
 
+// HTTP API to add a task via POST request
 app.post('/addTask', async (req: Request, res: Response) => {
   try {
     const { task } = req.body;
@@ -89,10 +91,8 @@ app.post('/addTask', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Task is required' });
     }
 
-    
     await TodoItemModel.create({ task });
 
-    
     mqttClient.publish('/add', task);
     
     res.status(201).json({ message: 'Task added successfully' });
@@ -102,7 +102,7 @@ app.post('/addTask', async (req: Request, res: Response) => {
   }
 });
 
-
+// HTTP API to fetch all tasks
 app.get('/fetchAllTasks', async (req: Request, res: Response) => {
   try {
     const tasks = await TodoItemModel.find();
