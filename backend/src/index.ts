@@ -70,6 +70,7 @@ mqttClient.on('message', async (topic, message) => {
       await redisClient.rpush('FULLSTACK_TASK_MD_Adi', task);
       
       const length = await redisClient.llen('FULLSTACK_TASK_MD_Adi');
+      // condition to check if length of task greater than 50 delete data from redis and send task to database
       if (length > 50) {
         const tasks = await redisClient.lrange('FULLSTACK_TASK_MD_Adi', 0, -1);
         await redisClient.del('FULLSTACK_TASK_MD_Adi');
